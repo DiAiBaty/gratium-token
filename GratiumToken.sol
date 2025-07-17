@@ -24,7 +24,6 @@ contract Gratium is ERC20, Ownable {
     mapping(address => uint256) public firstReceivedAt;
     mapping(address => uint256) public lastMaxBalance;
     mapping(address => uint256) public donatedAmount;
-    mapping(address => uint256) public burnDebt;
     mapping(address => bool) public isAirdropAddress;
 
     uint256 public constant DONATION_REQUIREMENT_PERCENT = 10;
@@ -58,9 +57,15 @@ contract Gratium is ERC20, Ownable {
     }
 
     function transfer(address recipient, uint256 amount) public override returns (bool) {
+        // 🔒 Блокировка вывода с кошелька команды до истечения срока
+        if (msg.sender == teamLockedWallet) {
+            require(block.timestamp >= teamLockedUntil, "Team tokens are locked");
+        }
+
         if (firstReceivedAt[recipient] == 0) {
             firstReceivedAt[recipient] = block.timestamp;
         }
+
         _updateBalanceSnapshot(recipient);
         _updateBalanceSnapshot(msg.sender);
         return super.transfer(recipient, amount);
@@ -91,9 +96,7 @@ contract Gratium is ERC20, Ownable {
     function burnInactive(address[] calldata users) external onlyOwner {
         for (uint i = 0; i < users.length; i++) {
             address user = users[i];
-            if (
-                block.timestamp < firstReceivedAt[user] + GRACE_PERIOD
-            ) {
+            if (block.timestamp < firstReceivedAt[user] + GRACE_PERIOD) {
                 continue;
             }
             uint256 debt = calculateDebt(user);
