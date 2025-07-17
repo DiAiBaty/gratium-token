@@ -1,0 +1,25 @@
+name: Gratium Auto Tasks
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # каждый день в 00:00 UTC
+  workflow_dispatch:
+
+jobs:
+  gratium-task:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install web3 python-dotenv
+
+      - name: Run main.py
+        run: python main.py
